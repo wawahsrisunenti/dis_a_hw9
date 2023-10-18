@@ -1,0 +1,42 @@
+{
+  "name": "wawahhw9",
+  "version": "1.0.0",
+  "description": "Homework week-9 MSIB Batch 5 with Rakamin Academy by Wawah Sri Sunenti FSWD 5B",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wawahsrisunenti/dis_a_hw9.git"
+  },
+  "keywords": [
+    "express",
+    "pg",
+    "node",
+    "swagger",
+    "pagination",
+    "REST",
+    "API"
+  ],
+  "author": "Wawah Sri Sunenti",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wawahsrisunenti/dis_a_hw9/issues"
+  },
+  "homepage": "https://github.com/wawahsrisunenti/dis_a_hw9#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.11.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
