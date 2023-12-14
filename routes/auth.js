@@ -1,49 +1,13 @@
-import express from "express";
-import jwt from "jsonwebtoken";
-import pool from "../dis_queries.js";
-
+const express = require("express");
 const router = express.Router();
+const jwt = require("jsonwebtoken");
+const pool = require("../dis_queries");
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     LoginInput:
- *       type: object
- *       properties:
- *         email:
- *           type: string
- *         password:
- *           type: string
- *
- *     AuthResponse:
- *       type: object
- *       properties:
- *         token:
- *           type: string
- *
- * /auth/login:
- *   post:
- *     summary: User login
- *     description: Authenticate a user by providing email and password.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginInput'
- *     responses:
- *       200:
- *         description: User has been authenticated.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
- */
-
+// Middleware untuk otentikasi user (contoh)
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
 
+  // Query ke basis data untuk mencari pengguna dengan email yang cocok
   pool.query(
     "SELECT * FROM users WHERE email = $1",
     [email],
@@ -53,20 +17,23 @@ router.post("/login", (req, res) => {
       }
 
       if (results.rows.length === 1) {
+        // Pengguna ditemukan berdasarkan email, sekarang periksa kata sandi
         const user = results.rows[0];
         if (user.password === password) {
+          // Kata sandi cocok, buat token JWT dan kirimkan sebagai respons
           const token = jwt.sign(
             { email: email, id: user.id },
-            "jumintenParkinson",
-            { expiresIn: "1h" }
+            "jumintenParkinson"
           );
           res.json({ token });
         } else {
+          // Kata sandi tidak cocok
           res
             .status(401)
             .json({ message: "Flat as a pancake! Please try again" });
         }
       } else {
+        // Pengguna tidak ditemukan berdasarkan email
         res
           .status(401)
           .json({ message: "Flat as a pancake! Please try again" });
@@ -75,95 +42,65 @@ router.post("/login", (req, res) => {
   );
 });
 
-/**
- * @swagger
- * /auth/register:
- *   post:
- *     summary: User registration
- *     description: Register a new user with the provided data.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RegisterInput'
- *     responses:
- *       200:
- *         description: User registration successful.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
- */
-
 router.post("/register", (req, res) => {
   const { email, password, gender, role } = req.body;
 
-  pool.query("SELECT MAX(id) AS max_id FROM users", (error, results) => {
-    if (error) {
-      throw error;
-    }
-
-    const maxId = results.rows[0].max_id || 0;
-    const newId = maxId + 1;
-
-    pool.query(
-      "INSERT INTO users (id, email, password, gender, role) VALUES ($1, $2, $3, $4, $5)",
-      [newId, email, password, gender, role],
-      (error, results) => {
-        if (error) {
-          throw error;
-        }
-
-        const user = {
-          email: email,
-          id: newId,
-        };
-        const token = jwt.sign(user, "jumintenParkinson", { expiresIn: "1h" });
-        res.json({
-          message: "It's a piece of cake! Register Sucessfully",
-          token,
-        });
+  // Cek apakah email sudah terdaftar
+  pool.query(
+    "SELECT * FROM users WHERE email = $1",
+    [email],
+    (error, results) => {
+      if (error) {
+        throw error;
       }
-    );
-  });
+
+      if (results.rows.length > 0) {
+        return res.status(400).json({ message: "Email sudah terdaftar" });
+      }
+
+      // Jika email belum terdaftar, tambahkan pengguna baru
+      pool.query(
+        "INSERT INTO users (email, password, gender, role) VALUES ($1, $2, $3, $4) RETURNING id",
+        [email, password, gender, role],
+        (error, results) => {
+          if (error) {
+            throw error;
+          }
+
+          // Buat token otentikasi untuk pengguna yang baru mendaftar
+          const user = {
+            email: email,
+            id: results.rows[0].id,
+          };
+          const token = jwt.sign(user, "jumintenParkinson");
+          res.json({
+            message: "Its a piece of cake! Register Sucessfully",
+            token,
+          });
+        }
+      );
+    }
+  );
 });
 
-/**
- * @swagger
- * /auth/authorize:
- *   get:
- *     summary: Authorize user
- *     description: Authorize a user to access protected routes.
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User has been authorized.
- *       401:
- *         description: Unauthorized, token is missing or invalid.
- */
-
 function authorize(req, res, next) {
+  // Periksa token otentikasi
   const token = req.header("x-auth-token");
-  if (!token) {
-    return res.status(401).json({
-      message:
-        "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
-    });
-  }
+  if (!token)
+    return res
+      .status(401)
+      .json({
+        message:
+          "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
+      });
 
   try {
     const decoded = jwt.verify(token, "jumintenParkinson");
     req.user = decoded;
     next();
   } catch (ex) {
-    if (ex instanceof TokenExpiredError) {
-      res.status(401).json({ message: "The jig is up! Token has expired" });
-    } else {
-      res.status(400).json({ message: "That's a bum steer! Invalid Token" });
-    }
+    res.status(400).json({ message: "Thats a bum steer! Invalid Token" });
   }
 }
 
-export { router as default, authorize };
+module.exports = { router, authorize };
