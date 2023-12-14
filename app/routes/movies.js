@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../dis_queries");
+const pool = require("../config/dis_queries");
 const { authorize } = require("./auth");
 
 /**
