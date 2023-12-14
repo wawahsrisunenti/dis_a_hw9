@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const pool = require("../config/dis_queries");
+const pool = require("../../config/dis_queries");
 const { TokenExpiredError } = require("jsonwebtoken");
 
 /**
