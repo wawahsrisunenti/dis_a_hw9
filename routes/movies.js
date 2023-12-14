@@ -99,7 +99,7 @@ const { authorize } = require("./auth");
  *         required: true
  *         schema:
  *           type: integer
- *         description: Movie ID
+ *         description: Movie data updated successfully
  *     requestBody:
  *       required: true
  *       content:
@@ -124,7 +124,7 @@ const { authorize } = require("./auth");
  *         description: Movie ID
  *     responses:
  *       200:
- *         description: Movie deleted successfully.
+ *         description: Movie data has been successfully deleted.
  */
 router.use(authorize); // Middleware untuk otentikasi
 
