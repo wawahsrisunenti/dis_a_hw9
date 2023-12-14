@@ -1,46 +1,143 @@
 const express = require("express");
 const router = express.Router();
-const { loginUser, registerUser } = require("../models/authModel");
 const jwt = require("jsonwebtoken");
+const pool = require("../dis_queries");
+const { TokenExpiredError } = require("jsonwebtoken");
 
 /**
  * @swagger
- * ... (Dokumentasi Swagger untuk rute login)
+ * components:
+ *   schemas:
+ *     LoginInput:
+ *       type: object
+ *       properties:
+ *         email:
+ *           type: string
+ *         password:
+ *           type: string
+ *
+ *     AuthResponse:
+ *       type: object
+ *       properties:
+ *         token:
+ *           type: string
+ *
+ * /auth/login:
+ *   post:
+ *     summary: User login
+ *     description: Authenticate a user by providing email and password.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginInput'
+ *     responses:
+ *       200:
+ *         description: User has been authenticated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
  */
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
 
-  loginUser(email, password, (error, token) => {
-    if (error) {
-      res.status(401).json(error);
-    } else {
-      res.json({ token });
+  pool.query(
+    "SELECT * FROM users WHERE email = $1",
+    [email],
+    (error, results) => {
+      if (error) {
+        throw error;
+      }
+
+      if (results.rows.length === 1) {
+        const user = results.rows[0];
+        if (user.password === password) {
+          const token = jwt.sign(
+            { email: email, id: user.id },
+            "jumintenParkinson",
+            { expiresIn: "1h" }
+          );
+          res.json({ token });
+        } else {
+          res.status(401).json({ message: "Gagal login" });
+        }
+      } else {
+        res.status(401).json({ message: "Gagal login" });
+      }
     }
-  });
+  );
 });
 
 /**
  * @swagger
- * ... (Dokumentasi Swagger untuk rute registrasi)
+ * /auth/register:
+ *   post:
+ *     summary: User registration
+ *     description: Register a new user with the provided data.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterInput'
+ *     responses:
+ *       200:
+ *         description: Its a piece of cake! Register Sucessfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
  */
 router.post("/register", (req, res) => {
   const { email, password, gender, role } = req.body;
 
-  registerUser(email, password, gender, role, (error, user) => {
+  pool.query("SELECT MAX(id) AS max_id FROM users", (error, results) => {
     if (error) {
-      res.status(500).json(error);
-    } else {
-      const token = jwt.sign(user, "jumintenParkinson", { expiresIn: "1h" });
-      res.json({ message: "Its a piece of cake! Register Sucessfully", token });
+      throw error;
     }
+
+    const maxId = results.rows[0].max_id || 0;
+    const newId = maxId + 1;
+
+    pool.query(
+      "INSERT INTO users (id, email, password, gender, role) VALUES ($1, $2, $3, $4, $5)",
+      [newId, email, password, gender, role],
+      (error, results) => {
+        if (error) {
+          throw error;
+        }
+
+        const user = {
+          email: email,
+          id: newId,
+        };
+        const token = jwt.sign(user, "jumintenParkinson", { expiresIn: "1h" });
+        res.json({
+          message: "Its a piece of cake! Register Sucessfully",
+          token,
+        });
+      }
+    );
   });
 });
 
 /**
  * @swagger
- * ... (Dokumentasi Swagger untuk rute otorisasi)
+ * /auth/authorize:
+ *   get:
+ *     summary: Authorize user
+ *     description: Authorize a user to access protected routes.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User has been authorized.
+ *       401:
+ *         description: The door is closed! No token, no entry. Access denied. Tokens are not provided.
  */
-router.get("/authorize", (req, res) => {
+function authorize(req, res, next) {
   const token = req.header("x-auth-token");
   if (!token)
     return res
@@ -53,8 +150,7 @@ router.get("/authorize", (req, res) => {
   try {
     const decoded = jwt.verify(token, "jumintenParkinson");
     req.user = decoded;
-    // Implement your authorization logic here
-    res.status(200).json({ message: "User telah diotorisasi" });
+    next();
   } catch (ex) {
     if (ex instanceof TokenExpiredError) {
       res.status(401).json({ message: "The jig is up! Token has expired" });
@@ -62,6 +158,6 @@ router.get("/authorize", (req, res) => {
       res.status(400).json({ message: "Thats a bum steer! Invalid Token" });
     }
   }
-});
+}
 
-module.exports = router;
+module.exports = { router, authorize };
