@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const authModel = require("../models/authModel"); // Sesuaikan dengan lokasi file model Anda
+const authModel = require("../models/authModels"); // Sesuaikan dengan lokasi file model Anda
 const { TokenExpiredError } = require("jsonwebtoken"); // Import error TokenExpiredError (opsional)
 
 /**
@@ -78,12 +78,10 @@ const registerUser = (req, res) => {
 const authorizeUser = (req, res, next) => {
   const token = req.header("x-auth-token");
   if (!token)
-    return res
-      .status(401)
-      .json({
-        message:
-          "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
-      });
+    return res.status(401).json({
+      message:
+        "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
+    });
 
   try {
     const decoded = jwt.verify(token, "jumintenParkinson");

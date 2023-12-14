@@ -1,4 +1,4 @@
-const pool = require("../../config/queries");
+const pool = require("../../config/dis_queries");
 
 const getUserByEmail = (email, callback) => {
   pool.query("SELECT * FROM users WHERE email = $1", [email], callback);
