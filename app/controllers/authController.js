@@ -1,16 +1,13 @@
 const jwt = require("jsonwebtoken");
-const pool = require("../../config/dis_queries");
 const { TokenExpiredError } = require("jsonwebtoken");
 
 function authorize(req, res, next) {
   const token = req.header("x-auth-token");
   if (!token)
-    return res
-      .status(401)
-      .json({
-        message:
-          "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
-      });
+    return res.status(401).json({
+      message:
+        "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
+    });
 
   try {
     const decoded = jwt.verify(token, "jumintenParkinson");
