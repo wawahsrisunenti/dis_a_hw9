@@ -8,12 +8,19 @@ router.use(authorize);
 
 // GET semua data movies
 router.get("/", (req, res) => {
-  pool.query("SELECT * FROM movies", (error, results) => {
-    if (error) {
-      throw error;
+  const page = req.query.page || 1;
+  const limit = req.query.limit || 10;
+  const offset = (page - 1) * limit;
+  pool.query(
+    "SELECT * FROM movies OFFSET $1 LIMIT $2",
+    [offset, limit],
+    (error, results) => {
+      if (error) {
+        throw error;
+      }
+      res.json(results.rows);
     }
-    res.json(results.rows);
-  });
+  );
 });
 
 // GET data movie berdasarkan ID
