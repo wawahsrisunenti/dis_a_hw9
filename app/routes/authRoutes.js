@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const pool = require("../dis_queries");
+const pool = require("../config/dis_queries");
 const { TokenExpiredError } = require("jsonwebtoken");
 
 /**
@@ -140,12 +140,10 @@ router.post("/register", (req, res) => {
 function authorize(req, res, next) {
   const token = req.header("x-auth-token");
   if (!token)
-    return res
-      .status(401)
-      .json({
-        message:
-          "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
-      });
+    return res.status(401).json({
+      message:
+        "The door is closed! No token, no entry. Access denied. Tokens are not provided.",
+    });
 
   try {
     const decoded = jwt.verify(token, "jumintenParkinson");
