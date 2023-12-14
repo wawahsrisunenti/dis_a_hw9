@@ -1,4 +1,4 @@
-const pool = require("../dis_queries");
+const pool = require("../config/dis_queries");
 
 // Model functions for movies
 const getMovies = (offset, limit, callback) => {
